@@ -66,7 +66,7 @@ Once done, refresh the connect page.
 
 ### One-Click Installation
 
-**[📥 Click here to install the script](https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.8.user.js)**
+**[📥 Click here to install the script](https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20-%20Combined%20Highlight%2C%20Download%20%26%20Activity%20Counter%20(Optimized)-4.9.user.js)**
 
 Tampermonkey will automatically detect the script and prompt you to install it.
 
