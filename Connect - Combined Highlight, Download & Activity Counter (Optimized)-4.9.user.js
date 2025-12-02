@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Connect - Combined Highlight, Download & Activity Counter (Optimized)
 // @namespace    https://github.com/alerts4kiran-cpu/efficient-work
-// @version      4.9
-// @description  Maximum optimized script with minimal browser impact for connect monitoring
+// @version      5.0
+// @description  Maximum optimized script with toggle switches and seconds precision for highlighting
 // @author       alerts4kiran-cpu
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
 // @match        https://c2-na-prod.awsapps.com/connect/real-time-metrics*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
-// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
+// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-5.0.user.js
+// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-5.0.user.js
 // @supportURL   https://github.com/alerts4kiran-cpu/efficient-work/issues
 // ==/UserScript==
 (function() {
@@ -23,7 +23,6 @@
         ACTIVITY_UPDATE_INTERVAL: 1000,
         TIME_REGEX: /^\d{1,2}:\d{2}(:\d{2})?$/,
         LETTER_REGEX: /[a-zA-Z]/,
-        // Activity names to exclude from agent data export (case-insensitive)
         ACTIVITY_SUMMARY_KEYWORDS: [
             '=== ACTIVITY SUMMARY ===',
             'Activity',
@@ -52,11 +51,22 @@
     // ==================== STATE MANAGEMENT ====================
     const state = {
         settings: {
-            yellowMin: GM_getValue('yellowMin', 2),
-            yellowMax: GM_getValue('yellowMax', 5),
-            redMin: GM_getValue('redMin', 5),
-            breakMin: GM_getValue('breakMin', 20),
-            lunchMin: GM_getValue('lunchMin', 30)
+            // Toggle switches for each highlight category
+            yellowEnabled: GM_getValue('yellowEnabled', true),
+            redEnabled: GM_getValue('redEnabled', true),
+            blueEnabled: GM_getValue('blueEnabled', true),
+            orangeEnabled: GM_getValue('orangeEnabled', true),
+            // Duration settings with seconds precision
+            yellowMinMinutes: GM_getValue('yellowMinMinutes', 2),
+            yellowMinSeconds: GM_getValue('yellowMinSeconds', 0),
+            yellowMaxMinutes: GM_getValue('yellowMaxMinutes', 5),
+            yellowMaxSeconds: GM_getValue('yellowMaxSeconds', 0),
+            redMinMinutes: GM_getValue('redMinMinutes', 5),
+            redMinSeconds: GM_getValue('redMinSeconds', 0),
+            breakMinMinutes: GM_getValue('breakMinMinutes', 20),
+            breakMinSeconds: GM_getValue('breakMinSeconds', 0),
+            lunchMinMinutes: GM_getValue('lunchMinMinutes', 30),
+            lunchMinSeconds: GM_getValue('lunchMinSeconds', 0)
         },
         observer: null,
         activityObserver: null,
@@ -82,7 +92,6 @@
 
     const containsLetters = (str) => CONFIG.LETTER_REGEX.test(str);
 
-    // Check if agent login should be excluded from EXPORT only (case-insensitive)
     const isActivitySummaryRow = (agentLogin) => {
         if (!agentLogin) return true;
         const loginStr = agentLogin.toString().trim().toLowerCase();
@@ -104,10 +113,22 @@
         return state.tableCache;
     };
 
+    // Convert minutes and seconds to total minutes
+    const convertToTotalMinutes = (minutes, seconds) => {
+        return minutes + (seconds / 60);
+    };
+
     // ==================== HIGHLIGHTING ====================
     const highlightAgents = () => {
         const tables = getTables();
         const len = tables.length;
+
+        // Calculate threshold values in minutes
+        const yellowMin = convertToTotalMinutes(state.settings.yellowMinMinutes, state.settings.yellowMinSeconds);
+        const yellowMax = convertToTotalMinutes(state.settings.yellowMaxMinutes, state.settings.yellowMaxSeconds);
+        const redMin = convertToTotalMinutes(state.settings.redMinMinutes, state.settings.redMinSeconds);
+        const breakMin = convertToTotalMinutes(state.settings.breakMinMinutes, state.settings.breakMinSeconds);
+        const lunchMin = convertToTotalMinutes(state.settings.lunchMinMinutes, state.settings.lunchMinSeconds);
 
         for (let t = 0; t < len; t++) {
             const rows = tables[t].rows;
@@ -162,17 +183,17 @@
                 }
 
                 if (status === 'Available') {
-                    if (duration >= state.settings.redMin) {
+                    if (state.settings.redEnabled && duration >= redMin) {
                         row.style.cssText = 'background-color:#ffcccc;font-weight:bold';
                         row.setAttribute('data-highlighted', 'red');
-                    } else if (duration >= state.settings.yellowMin && duration < state.settings.yellowMax) {
+                    } else if (state.settings.yellowEnabled && duration >= yellowMin && duration < yellowMax) {
                         row.style.cssText = 'background-color:#ffff99;font-weight:bold';
                         row.setAttribute('data-highlighted', 'yellow');
                     }
-                } else if (status === 'Break' && duration > state.settings.breakMin) {
+                } else if (status === 'Break' && state.settings.blueEnabled && duration > breakMin) {
                     row.style.cssText = 'background-color:#cce5ff;font-weight:bold';
                     row.setAttribute('data-highlighted', 'blue');
-                } else if (status === 'Lunch' && duration > state.settings.lunchMin) {
+                } else if (status === 'Lunch' && state.settings.orangeEnabled && duration > lunchMin) {
                     row.style.cssText = 'background-color:#ffe5cc;font-weight:bold';
                     row.setAttribute('data-highlighted', 'orange');
                 }
@@ -204,7 +225,6 @@
 
                 const agentLogin = cells[0]?.textContent?.trim();
 
-                // FIXED: Skip activity summary rows and header rows (case-insensitive) - EXPORT ONLY
                 if (!agentLogin || agentLogin === 'Agent Login' || isActivitySummaryRow(agentLogin)) continue;
 
                 const rowData = {};
@@ -233,7 +253,7 @@
     const getActivitySummaryCSV = () => {
         const activityDetails = state.cachedActivityDetails;
         const sortedActivities = Object.keys(activityDetails).sort();
-        let csv = '\r\r\r"=== ACTIVITY SUMMARY ==="\r"Activity","HC","Duration","Agent"\r';
+        let csv = '\r\r\r"=== ACTIVITY SUMMARY ==="\r"Activity","HC","Highest Duration","Agent"\r';
         let totalCount = 0;
         for (let i = 0; i < sortedActivities.length; i++) {
             const activity = sortedActivities[i];
@@ -281,7 +301,6 @@
                 const activity = cells[2]?.textContent?.trim();
                 const durationText = cells[4]?.textContent?.trim();
 
-                // FIXED: Only filter numeric-only activities and header rows, keep ALL text activities
                 if (agentLogin && activity && agentLogin !== 'Agent Login' && containsLetters(activity)) {
                     const durationMinutes = parseTimeToMinutes(durationText);
 
@@ -296,7 +315,6 @@
 
                     activityDetails[activity].count++;
 
-                    // Update max duration and agent if current duration is higher
                     if (durationMinutes > activityDetails[activity].maxDurationMinutes) {
                         activityDetails[activity].maxDuration = durationText || '-';
                         activityDetails[activity].maxDurationMinutes = durationMinutes;
@@ -306,7 +324,6 @@
             }
         }
 
-        // Update cached data
         state.cachedActivityCounts = {};
         for (const activity in activityDetails) {
             state.cachedActivityCounts[activity] = activityDetails[activity].count;
@@ -319,7 +336,7 @@
     const downloadActivityData = () => {
         const activityDetails = state.cachedActivityDetails;
         const sortedActivities = Object.keys(activityDetails).sort();
-        let csvContent = 'Activity,HC,Duration,Agent\r';
+        let csvContent = 'Activity,HC,Highest Duration,Agent\r';
         let totalCount = 0;
 
         for (let i = 0; i < sortedActivities.length; i++) {
@@ -342,8 +359,7 @@
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
-
-    const updateActivitySummary = () => {
+const updateActivitySummary = () => {
         if (!state.summaryBox || state.summaryBox.style.display === 'none' || state.isUpdating) return;
 
         const now = Date.now();
@@ -379,7 +395,7 @@
         state.summaryBox = document.createElement('div');
         state.summaryBox.id = 'activity-summary-box';
         state.summaryBox.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);min-width:400px;max-width:600px;cursor:move;font-family:Arial,sans-serif';
-        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every second • Drag to move</div>';
+        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every second • Drag to move</div>';
         document.body.appendChild(state.summaryBox);
 
         makeDraggable(state.summaryBox);
@@ -395,8 +411,7 @@
 
         updateActivitySummary();
     };
-
-    const makeDraggable = (element) => {
+ const makeDraggable = (element) => {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         element.onmousedown = (e) => {
             if (e.target.id === 'close-summary-btn' || e.target.id === 'download-summary-btn') return;
@@ -462,8 +477,92 @@
 
         const dialog = document.createElement('div');
         dialog.id = 'highlightSettingsDialog';
-        dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;padding:25px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:450px';
-        dialog.innerHTML = `<h2 style="margin-top:0;color:#333">Agent Highlight Settings</h2><div style="margin-bottom:15px"><label style="display:block;margin-bottom:5px;font-weight:bold">🟡 Yellow (Available):</label><div style="display:flex;align-items:center;gap:10px"><span>≥</span><input type="number" id="yellowMin" value="${state.settings.yellowMin}" min="0" step="0.5" style="width:70px;padding:5px"><span>&lt;</span><input type="number" id="yellowMax" value="${state.settings.yellowMax}" min="0" step="0.5" style="width:70px;padding:5px"><span>min</span></div></div><div style="margin-bottom:15px"><label style="display:block;margin-bottom:5px;font-weight:bold">🔴 Red (Available):</label><div style="display:flex;align-items:center;gap:10px"><span>≥</span><input type="number" id="redMin" value="${state.settings.redMin}" min="0" step="0.5" style="width:70px;padding:5px"><span>min</span></div></div><div style="margin-bottom:15px"><label style="display:block;margin-bottom:5px;font-weight:bold">🔵 Blue (Break):</label><div style="display:flex;align-items:center;gap:10px"><span>&gt;</span><input type="number" id="breakMin" value="${state.settings.breakMin}" min="0" step="0.5" style="width:70px;padding:5px"><span>min</span></div></div><div style="margin-bottom:20px"><label style="display:block;margin-bottom:5px;font-weight:bold">🟠 Orange (Lunch):</label><div style="display:flex;align-items:center;gap:10px"><span>&gt;</span><input type="number" id="lunchMin" value="${state.settings.lunchMin}" min="0" step="0.5" style="width:70px;padding:5px"><span>min</span></div></div><div style="display:flex;gap:10px;justify-content:flex-end"><button id="cancelBtn" style="padding:8px 20px;background:#ccc;border:none;border-radius:5px;cursor:pointer">Cancel</button><button id="saveBtn" style="padding:8px 20px;background:#4CAF50;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:bold">Save</button></div>`;
+        dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:#fff;padding:25px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:550px;max-height:80vh;overflow-y:auto';
+        dialog.innerHTML = `
+            <h2 style="margin-top:0;color:#333">Agent Highlight Settings</h2>
+
+            <!-- Yellow Highlighting -->
+            <div style="margin-bottom:20px;padding:15px;background:#fffef0;border-radius:5px;border-left:4px solid #ffeb3b">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <label style="font-weight:bold;font-size:16px">🟡 Yellow (Available)</label>
+                    <label style="display:flex;align-items:center;cursor:pointer">
+                        <input type="checkbox" id="yellowEnabled" ${state.settings.yellowEnabled ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer">
+                        <span style="margin-left:8px;font-size:14px">Enable</span>
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                    <span>≥</span>
+                    <input type="number" id="yellowMinMinutes" value="${state.settings.yellowMinMinutes}" min="0" step="1" style="width:60px;padding:5px">
+                    <span>min</span>
+                    <input type="number" id="yellowMinSeconds" value="${state.settings.yellowMinSeconds}" min="0" max="59" step="1" style="width:60px;padding:5px">
+                    <span>sec</span>
+                    <span style="margin:0 5px">&lt;</span>
+                    <input type="number" id="yellowMaxMinutes" value="${state.settings.yellowMaxMinutes}" min="0" step="1" style="width:60px;padding:5px">
+                    <span>min</span>
+                    <input type="number" id="yellowMaxSeconds" value="${state.settings.yellowMaxSeconds}" min="0" max="59" step="1" style="width:60px;padding:5px">
+                    <span>sec</span>
+                </div>
+            </div>
+
+            <!-- Red Highlighting -->
+            <div style="margin-bottom:20px;padding:15px;background:#fff0f0;border-radius:5px;border-left:4px solid #f44336">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <label style="font-weight:bold;font-size:16px">🔴 Red (Available)</label>
+                    <label style="display:flex;align-items:center;cursor:pointer">
+                        <input type="checkbox" id="redEnabled" ${state.settings.redEnabled ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer">
+                        <span style="margin-left:8px;font-size:14px">Enable</span>
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                    <span>≥</span>
+                    <input type="number" id="redMinMinutes" value="${state.settings.redMinMinutes}" min="0" step="1" style="width:60px;padding:5px">
+                    <span>min</span>
+                    <input type="number" id="redMinSeconds" value="${state.settings.redMinSeconds}" min="0" max="59" step="1" style="width:60px;padding:5px">
+                    <span>sec</span>
+                </div>
+            </div>
+
+            <!-- Blue Highlighting -->
+            <div style="margin-bottom:20px;padding:15px;background:#f0f8ff;border-radius:5px;border-left:4px solid #2196F3">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <label style="font-weight:bold;font-size:16px">🔵 Blue (Break)</label>
+                    <label style="display:flex;align-items:center;cursor:pointer">
+                        <input type="checkbox" id="blueEnabled" ${state.settings.blueEnabled ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer">
+                        <span style="margin-left:8px;font-size:14px">Enable</span>
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                    <span>&gt;</span>
+                    <input type="number" id="breakMinMinutes" value="${state.settings.breakMinMinutes}" min="0" step="1" style="width:60px;padding:5px">
+                    <span>min</span>
+                    <input type="number" id="breakMinSeconds" value="${state.settings.breakMinSeconds}" min="0" max="59" step="1" style="width:60px;padding:5px">
+                    <span>sec</span>
+                </div>
+            </div>
+
+            <!-- Orange Highlighting -->
+            <div style="margin-bottom:20px;padding:15px;background:#fff5f0;border-radius:5px;border-left:4px solid #ff9800">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <label style="font-weight:bold;font-size:16px">🟠 Orange (Lunch)</label>
+                    <label style="display:flex;align-items:center;cursor:pointer">
+                        <input type="checkbox" id="orangeEnabled" ${state.settings.orangeEnabled ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer">
+                        <span style="margin-left:8px;font-size:14px">Enable</span>
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                    <span>&gt;</span>
+                    <input type="number" id="lunchMinMinutes" value="${state.settings.lunchMinMinutes}" min="0" step="1" style="width:60px;padding:5px">
+                    <span>min</span>
+                    <input type="number" id="lunchMinSeconds" value="${state.settings.lunchMinSeconds}" min="0" max="59" step="1" style="width:60px;padding:5px">
+                    <span>sec</span>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+                <button id="cancelBtn" style="padding:8px 20px;background:#ccc;border:none;border-radius:5px;cursor:pointer">Cancel</button>
+                <button id="saveBtn" style="padding:8px 20px;background:#4CAF50;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:bold">Save</button>
+            </div>
+        `;
 
         document.body.appendChild(backdrop);
         document.body.appendChild(dialog);
@@ -473,23 +572,70 @@
     };
 
     const saveSettings = () => {
-        const yellowMin = parseFloat(document.getElementById('yellowMin').value);
-        const yellowMax = parseFloat(document.getElementById('yellowMax').value);
-        const redMin = parseFloat(document.getElementById('redMin').value);
-        const breakMin = parseFloat(document.getElementById('breakMin').value);
-        const lunchMin = parseFloat(document.getElementById('lunchMin').value);
+        const yellowEnabled = document.getElementById('yellowEnabled').checked;
+        const redEnabled = document.getElementById('redEnabled').checked;
+        const blueEnabled = document.getElementById('blueEnabled').checked;
+        const orangeEnabled = document.getElementById('orangeEnabled').checked;
 
-        if (yellowMin >= yellowMax || redMin < yellowMax) {
-            alert('Invalid settings!');
+        const yellowMinMinutes = parseInt(document.getElementById('yellowMinMinutes').value);
+        const yellowMinSeconds = parseInt(document.getElementById('yellowMinSeconds').value);
+        const yellowMaxMinutes = parseInt(document.getElementById('yellowMaxMinutes').value);
+        const yellowMaxSeconds = parseInt(document.getElementById('yellowMaxSeconds').value);
+        const redMinMinutes = parseInt(document.getElementById('redMinMinutes').value);
+        const redMinSeconds = parseInt(document.getElementById('redMinSeconds').value);
+        const breakMinMinutes = parseInt(document.getElementById('breakMinMinutes').value);
+        const breakMinSeconds = parseInt(document.getElementById('breakMinSeconds').value);
+        const lunchMinMinutes = parseInt(document.getElementById('lunchMinMinutes').value);
+        const lunchMinSeconds = parseInt(document.getElementById('lunchMinSeconds').value);
+
+        // Validation
+        const yellowMinTotal = convertToTotalMinutes(yellowMinMinutes, yellowMinSeconds);
+        const yellowMaxTotal = convertToTotalMinutes(yellowMaxMinutes, yellowMaxSeconds);
+        const redMinTotal = convertToTotalMinutes(redMinMinutes, redMinSeconds);
+
+        if (yellowEnabled && yellowMinTotal >= yellowMaxTotal) {
+            alert('Yellow minimum must be less than yellow maximum!');
             return;
         }
 
-        state.settings = {yellowMin, yellowMax, redMin, breakMin, lunchMin};
-        GM_setValue('yellowMin', yellowMin);
-        GM_setValue('yellowMax', yellowMax);
-        GM_setValue('redMin', redMin);
-        GM_setValue('breakMin', breakMin);
-        GM_setValue('lunchMin', lunchMin);
+        if (yellowEnabled && redEnabled && redMinTotal < yellowMaxTotal) {
+            alert('Red minimum should be greater than or equal to yellow maximum!');
+            return;
+        }
+
+        // Save all settings
+        state.settings = {
+            yellowEnabled,
+            redEnabled,
+            blueEnabled,
+            orangeEnabled,
+            yellowMinMinutes,
+            yellowMinSeconds,
+            yellowMaxMinutes,
+            yellowMaxSeconds,
+            redMinMinutes,
+            redMinSeconds,
+            breakMinMinutes,
+            breakMinSeconds,
+            lunchMinMinutes,
+            lunchMinSeconds
+        };
+
+        // Save to GM storage
+        GM_setValue('yellowEnabled', yellowEnabled);
+        GM_setValue('redEnabled', redEnabled);
+        GM_setValue('blueEnabled', blueEnabled);
+        GM_setValue('orangeEnabled', orangeEnabled);
+        GM_setValue('yellowMinMinutes', yellowMinMinutes);
+        GM_setValue('yellowMinSeconds', yellowMinSeconds);
+        GM_setValue('yellowMaxMinutes', yellowMaxMinutes);
+        GM_setValue('yellowMaxSeconds', yellowMaxSeconds);
+        GM_setValue('redMinMinutes', redMinMinutes);
+        GM_setValue('redMinSeconds', redMinSeconds);
+        GM_setValue('breakMinMinutes', breakMinMinutes);
+        GM_setValue('breakMinSeconds', breakMinSeconds);
+        GM_setValue('lunchMinMinutes', lunchMinMinutes);
+        GM_setValue('lunchMinSeconds', lunchMinSeconds);
 
         highlightAgents();
         closeDialog();
