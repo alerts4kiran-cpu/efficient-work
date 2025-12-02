@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Connect - Combined Highlight, Download & Activity Counter (Optimized)
 // @namespace    https://github.com/alerts4kiran-cpu/efficient-work
-// @version      5.0
+// @version      5.1
 // @description  Maximum optimized script with toggle switches and seconds precision for highlighting
 // @author       alerts4kiran-cpu
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
 // @match        https://c2-na-prod.awsapps.com/connect/real-time-metrics*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20-%20Combined%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
-// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20-%20Combined%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
+// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-5.0.user.js
+// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-5.0.user.js
 // @supportURL   https://github.com/alerts4kiran-cpu/efficient-work/issues
 // ==/UserScript==
 (function() {
@@ -253,7 +253,7 @@
     const getActivitySummaryCSV = () => {
         const activityDetails = state.cachedActivityDetails;
         const sortedActivities = Object.keys(activityDetails).sort();
-        let csv = '\r\r\r"=== ACTIVITY SUMMARY ==="\r"Activity","HC","Max Duration","Agent"\r';
+        let csv = '\r\r\r"=== ACTIVITY SUMMARY ==="\r"Activity","HC","Highest Duration","Agent"\r';
         let totalCount = 0;
         for (let i = 0; i < sortedActivities.length; i++) {
             const activity = sortedActivities[i];
@@ -336,7 +336,7 @@
     const downloadActivityData = () => {
         const activityDetails = state.cachedActivityDetails;
         const sortedActivities = Object.keys(activityDetails).sort();
-        let csvContent = 'Activity,HC,Max Duration,Agent\r';
+        let csvContent = 'Activity,HC,Highest Duration,Agent\r';
         let totalCount = 0;
 
         for (let i = 0; i < sortedActivities.length; i++) {
@@ -359,8 +359,7 @@
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
-
-    const updateActivitySummary = () => {
+const updateActivitySummary = () => {
         if (!state.summaryBox || state.summaryBox.style.display === 'none' || state.isUpdating) return;
 
         const now = Date.now();
@@ -396,7 +395,7 @@
         state.summaryBox = document.createElement('div');
         state.summaryBox.id = 'activity-summary-box';
         state.summaryBox.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);min-width:400px;max-width:600px;cursor:move;font-family:Arial,sans-serif';
-        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Max Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every second • Drag to move</div>';
+        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every second • Drag to move</div>';
         document.body.appendChild(state.summaryBox);
 
         makeDraggable(state.summaryBox);
