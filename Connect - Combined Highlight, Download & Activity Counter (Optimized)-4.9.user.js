@@ -8,8 +8,8 @@
 // @match        https://c2-na-prod.awsapps.com/connect/real-time-metrics*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
-// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20Monitoring%20-%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
+// @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20-%20Combined%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
+// @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/Connect%20-%20Combined%20Highlight,%20Download%20&%20Activity%20Counter%20(Optimized)-4.9.user.js
 // @supportURL   https://github.com/alerts4kiran-cpu/efficient-work/issues
 // ==/UserScript==
 (function() {
