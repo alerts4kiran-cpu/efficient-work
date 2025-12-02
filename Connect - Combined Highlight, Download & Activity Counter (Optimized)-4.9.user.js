@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Connect - Combined Highlight, Download & Activity Counter (Optimized)
 // @namespace    https://github.com/alerts4kiran-cpu/efficient-work
-// @version      5.0
+// @version      5.1
 // @description  Maximum optimized script with toggle switches and seconds precision for highlighting
 // @author       alerts4kiran-cpu
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
