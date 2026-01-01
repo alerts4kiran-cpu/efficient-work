@@ -971,7 +971,7 @@ if (currentTimeSpan) {
     bottom: 10px;
     right: 10px;
     width: 700px;
-    height: 600px;
+    max-height: 600px;
     background: white;
     border: 2px solid #d13212;
     border-radius: 8px;
@@ -1032,17 +1032,20 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
     };
 
     const toggleOutOfSlotBox = () => {
-        const content = document.getElementById('outOfSlotContent');
-        const minimizeBtn = document.getElementById('minimizeOutOfSlotBtn');
-        state.isOutOfSlotBoxMinimized = !state.isOutOfSlotBoxMinimized;
-        if (state.isOutOfSlotBoxMinimized) {
-            content.style.display = 'none';
-            minimizeBtn.textContent = '+';
-        } else {
-            content.style.display = 'block';
-            minimizeBtn.textContent = '−';
-        }
-    };
+    const content = document.getElementById('outOfSlotContent');
+    const minimizeBtn = document.getElementById('outOfSlotMinimizeBtn');
+    const box = document.getElementById('outOfSlotBox');
+
+    state.isOutOfSlotBoxMinimized = !state.isOutOfSlotBoxMinimized;
+
+    if (state.isOutOfSlotBoxMinimized) {
+        content.style.display = 'none';
+        minimizeBtn.textContent = '+';
+    } else {
+        content.style.display = 'block';
+        minimizeBtn.textContent = '−';
+    }
+};
 
     const downloadOutOfSlotCSV = () => {
     if (state.outOfSlotAgents.length === 0) {
