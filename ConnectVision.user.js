@@ -4,11 +4,12 @@
 // @version      6.0
 // @description  ConnectVision: Ultimate monitoring suite for Amazon Connect with duration-based highlighting, activity tracking, break schedule compliance, resizable panels, and CSV exports
 // @author       alerts4kiran-cpu
-// @match        https://*.awsapps.com/connect/ccp-v2*
-// @match        https://*.my.connect.aws/ccp-v2*
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
 // @match        https://c2-na-prod.awsapps.com/connect/real-time-metrics*
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_listValues
+// @grant        GM_deleteValue
 // @updateURL    https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/ConnectVision.user.js
 // @downloadURL  https://raw.githubusercontent.com/alerts4kiran-cpu/efficient-work/main/ConnectVision.user.js
 // ==/UserScript==
