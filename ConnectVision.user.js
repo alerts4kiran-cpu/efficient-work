@@ -673,7 +673,7 @@ if (activity && containsLetters(activity)) {
             const activity = sortedActivities[i];
             const details = activityDetails[activity];
             totalCount += details.count;
-            rows.push(`<tr><td style="padding:8px;border-bottom:1px solid #ddd">${activity}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:center;font-weight:bold">${details.count}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:center">${details.maxDuration}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:center">${details.maxAgent}</td></tr>`);
+            rows.push(`<tr><td style="padding:8px;border-bottom:1px solid #ddd">${activity}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:center;font-weight:bold">${details.count}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:center">${details.maxDuration}</td><td class="copy-agent" data-agent="${details.maxAgent}" style="padding:8px;border-bottom:1px solid #ddd;text-align:center;cursor:pointer;color:#2196F3" title="Click to copy">${details.maxAgent}</td></tr>`);
         }
         rows.push(`<tr><td style="padding:8px;font-weight:bold;background:#f0f0f0">Total</td><td style="padding:8px;font-weight:bold;background:#f0f0f0;text-align:center">${totalCount}</td><td style="padding:8px;font-weight:bold;background:#f0f0f0;text-align:center">-</td><td style="padding:8px;font-weight:bold;background:#f0f0f0;text-align:center">-</td></tr>`);
 
@@ -684,8 +684,8 @@ if (activity && containsLetters(activity)) {
     const createActivitySummaryBox = () => {
         state.summaryBox = document.createElement('div');
         state.summaryBox.id = 'activity-summary-box';
-        state.summaryBox.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);width:600px;height:500px;cursor:move;font-family:Arial,sans-serif;overflow:hidden';
-        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:calc(100% - 100px);overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every 5 seconds • Drag to move</div>';
+        state.summaryBox.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);width:300px;height:250px;cursor:move;font-family:Arial,sans-serif;overflow:hidden';
+        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3></div><div style="font-size:11px;color:#666;margin-bottom:8px;font-style:italic">Single click on Login/Agent to copy to clipboard</div><div style="display:flex;justify-content:flex-end;align-items:center"><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:calc(100% - 100px);overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every 5 seconds • Drag to move</div>';
         document.body.appendChild(state.summaryBox);
 
         makeDraggable(state.summaryBox);
@@ -698,7 +698,20 @@ if (activity && containsLetters(activity)) {
             e.stopPropagation();
             state.summaryBox.style.display = 'none';
         };
-
+          // ✅ NEW: Add click-to-copy for agent names
+document.getElementById('activity-summary-box').addEventListener('click', (e) => {
+    const cell = e.target.closest('.copy-agent');
+    if (cell) {
+        e.stopPropagation();
+        const agent = cell.getAttribute('data-agent');
+        navigator.clipboard.writeText(agent).then(() => {
+            alert(`✅ Copied: ${agent}`);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('❌ Failed to copy to clipboard');
+        });
+    }
+});
         updateActivitySummary();
     };
 
@@ -742,7 +755,7 @@ const closeDrag = () => {
 // ← ADD THE NEW FUNCTION HERE (after this blank line)
 const makeResizable = (element) => {
     const resizer = document.createElement('div');
-    resizer.style.cssText = 'position:absolute;right:0;bottom:0;width:15px;height:15px;background:linear-gradient(135deg,transparent 50%,#666 50%);cursor:nwse-resize;z-index:10';
+    resizer.style.cssText = 'position:absolute;right:0;bottom:0;width:30px;height:30px;background:linear-gradient(135deg,transparent 50%,#ff0000 50%);cursor:nwse-resize;z-index:10';
     element.appendChild(resizer);
     element.style.position = 'fixed';
 
@@ -763,8 +776,8 @@ const makeResizable = (element) => {
     const resize = (e) => {
         const width = startWidth + (e.clientX - startX);
         const height = startHeight + (e.clientY - startY);
-        element.style.width = Math.max(400, width) + 'px';
-        element.style.height = Math.max(300, height) + 'px';
+        element.style.width = Math.max(250, width) + 'px';  // ✅ Changed from 400 to 250
+        element.style.height = Math.max(200, height) + 'px'; // ✅ Changed from 300 to 200
     };
 
     const stopResize = () => {
@@ -897,23 +910,74 @@ if (channels && channels !== 'Voice') continue;
 
     // ==================== OUT-OF-SLOT BREAKS DISPLAY ====================
     const updateOutOfSlotBox = () => {
-        const listDiv = document.getElementById('outOfSlotList');
-        const countSpan = document.getElementById('outOfSlotCount');
-        const bufferTimeSpan = document.getElementById('displayBufferTime');
+    const listDiv = document.getElementById('outOfSlotList');
+    const countSpan = document.getElementById('outOfSlotCount');
+    const bufferTimeSpan = document.getElementById('displayBufferTime');
 
-        if (!listDiv || !countSpan || !bufferTimeSpan) return;
+    if (!listDiv || !countSpan || !bufferTimeSpan) return;
 
-        bufferTimeSpan.textContent = `${String(state.bufferMinutes).padStart(2, '0')}:${String(state.bufferSeconds).padStart(2, '0')}`;
-// ✅ ADD THIS NEW CODE:
-const currentTimeSpan = document.getElementById('displayCurrentTime');
-if (currentTimeSpan) {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    currentTimeSpan.textContent = `${hours}:${minutes}:${seconds}`;
-}
-        if (state.outOfSlotAgents.length === 0) {
+    bufferTimeSpan.textContent = `${String(state.bufferMinutes).padStart(2, '0')}:${String(state.bufferSeconds).padStart(2, '0')}`;
+
+    // ✅ UPDATE CURRENT TIME
+    const currentTimeSpan = document.getElementById('displayCurrentTime');
+    if (currentTimeSpan) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        currentTimeSpan.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    // ✅ NEW: UPDATE CURRENT SLOT
+    const currentSlotSpan = document.getElementById('displayCurrentSlot');
+    if (currentSlotSpan) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
+
+        // Get all unique break slots from schedules
+        const allSlots = [];
+        for (const login in state.breakSchedules) {
+            const scheduleData = state.breakSchedules[login];
+            if (scheduleData.breaks) {
+                scheduleData.breaks.forEach(slot => {
+                    const duration = slot.end - slot.start;
+                    const slotKey = `${Math.floor(slot.start/60)}:${String(slot.start%60).padStart(2,'0')}-${Math.floor(slot.end/60)}:${String(slot.end%60).padStart(2,'0')}`;
+                    allSlots.push({ start: slot.start, end: slot.end, duration: duration, display: slotKey });
+                });
+            }
+        }
+
+        // Remove duplicates
+        const uniqueSlots = [];
+        const seen = new Set();
+        allSlots.forEach(slot => {
+            if (!seen.has(slot.display)) {
+                seen.add(slot.display);
+                uniqueSlots.push(slot);
+            }
+        });
+
+        // Find current slot
+        let foundSlot = null;
+        for (const slot of uniqueSlots) {
+            if (currentMinutes >= slot.start && currentMinutes <= slot.end) {
+                foundSlot = slot;
+                break;
+            }
+        }
+
+        if (foundSlot) {
+            currentSlotSpan.textContent = `Break Slot: ${foundSlot.display} (${foundSlot.duration} Mins)`;
+            currentSlotSpan.style.color = '#067d62';
+            currentSlotSpan.style.fontWeight = 'bold';
+        } else {
+            currentSlotSpan.textContent = 'No scheduled slots right now';
+            currentSlotSpan.style.color = '#666';
+            currentSlotSpan.style.fontWeight = 'normal';
+        }
+    }
+
+    if (state.outOfSlotAgents.length === 0) {
             listDiv.innerHTML = `
                 <div style="text-align: center; color: #666; padding: 20px;">
                     No out-of-slot breaks detected
@@ -992,13 +1056,18 @@ if (currentTimeSpan) {
                 </div>
             </div>
             <div id="outOfSlotContent" style="padding: 15px; height: calc(100% - 50px); overflow-y: auto;">
-                <div style="margin-bottom: 10px; padding: 8px; background: #fff3cd; border-left: 4px solid #ff9900; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
-                     <div>
-                          <div><strong>Buffer Time:</strong> <span id="displayBufferTime">00:00</span></div>
-                          <div style="margin-top: 5px;"><strong>Current Time:</strong> <span id="displayCurrentTime">--:--:--</span></div>
-                    </div>
-                    <button id="downloadCSVBtn" style="padding: 5px 10px; background: #232f3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">📥 Download CSV</button>
-                </div>
+                <div style="margin-bottom: 10px; padding: 8px; background: #fff3cd; border-left: 4px solid #ff9900; font-size: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="flex: 1;">
+        <div><strong>Buffer Time:</strong> <span id="displayBufferTime">00:00</span></div>
+        <div style="margin-top: 5px;"><strong>Current Time:</strong> <span id="displayCurrentTime">--:--:--</span></div>
+    </div>
+    <div style="flex: 1; text-align: center; padding: 0 10px;">
+        <div style="font-weight: bold;">Current Slot:</div>
+        <div id="displayCurrentSlot" style="margin-top: 5px; font-size: 14px; color: #067d62;">--</div>
+    </div>
+    <button id="downloadCSVBtn" style="padding: 5px 10px; background: #232f3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">📥 Download CSV</button>
+</div>
+<div style="margin-top: 5px; font-style: italic; color: #666; font-size: 11px; padding: 0 8px;">Single click on Login/Agent to copy to clipboard</div>
                 <div id="outOfSlotList" style="font-size: 12px; overflow-x: auto; user-select: text;">
                     <div style="text-align: center; color: #666; padding: 20px;">
                         No out-of-slot breaks detected
@@ -1033,17 +1102,24 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
 
     const toggleOutOfSlotBox = () => {
     const content = document.getElementById('outOfSlotContent');
-    const minimizeBtn = document.getElementById('outOfSlotMinimizeBtn');
+    const minimizeBtn = document.getElementById('minimizeOutOfSlotBtn');  // ✅ FIXED ID
     const box = document.getElementById('outOfSlotBox');
+
+    if (!content || !minimizeBtn || !box) return;  // ✅ ADDED NULL CHECK
 
     state.isOutOfSlotBoxMinimized = !state.isOutOfSlotBoxMinimized;
 
     if (state.isOutOfSlotBoxMinimized) {
         content.style.display = 'none';
         minimizeBtn.textContent = '+';
+        // ✅ FIX: Reset height to header-only when minimized
+        box.style.height = 'auto';
+        box.style.maxHeight = '50px';
     } else {
         content.style.display = 'block';
         minimizeBtn.textContent = '−';
+        // ✅ FIX: Restore height constraints when expanded
+        box.style.maxHeight = '600px';
     }
 };
 
@@ -1090,19 +1166,19 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
         const panel = document.createElement('div');
         panel.id = 'scheduleControlPanel';
         panel.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 350px;
-            background: white;
-            border: 2px solid #232f3e;
-            border-radius: 8px;
-            padding: 0;
-            z-index: 9997;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            font-family: Arial, sans-serif;
-            cursor: move;
-        `;
+    position: fixed;
+    top: 50px;           /* ✅ Changed from 10px to 50px */
+    right: 10px;
+    width: 350px;
+    background: white;
+    border: 2px solid #232f3e;
+    border-radius: 8px;
+    padding: 0;
+    z-index: 9997;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-family: Arial, sans-serif;
+    cursor: move;
+`;
 
         panel.innerHTML = `
             <div id="panelHeader" style="background: #232f3e; color: white; padding: 10px 15px; border-radius: 6px 6px 0 0; cursor: move; display: flex; justify-content: space-between; align-items: center;">
@@ -1429,10 +1505,11 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
     };
 
     // ==================== UI BUTTONS ====================
-    const createButton = (text, right, bg, hoverBg, onClick) => {
-        const btn = document.createElement('button');
-        btn.innerHTML = text;
-        btn.style.cssText = `position:fixed;top:10px;right:${right}px;z-index:10000;padding:10px 15px;background:${bg};color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3)`;
+    const createButton = (text, right, bg, hoverBg, onClick, transform = '') => {
+    const btn = document.createElement('button');
+    btn.innerHTML = text;
+    const transformStyle = transform ? `transform:${transform};` : '';
+    btn.style.cssText = `position:fixed;top:10px;left:${right};${transformStyle}z-index:10000;padding:10px 15px;background:${bg};color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3)`;
         btn.onmouseover = function() { this.style.background = hoverBg; };
         btn.onmouseout = function() { this.style.background = bg; };
         btn.onclick = onClick;
@@ -1440,10 +1517,11 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
     };
 
     const createToggleActivityButton = () => {
-        const button = document.createElement('button');
-        button.innerHTML = '📊 Activity';
-        button.id = 'toggle-summary-btn';
-        button.style.cssText = 'position:fixed;top:10px;right:540px;z-index:10000;padding:10px 15px;background:#2196F3;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3)';
+    const button = document.createElement('button');
+    button.innerHTML = '📊 Activity';
+    button.id = 'toggle-summary-btn';
+    button.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-180px);z-index:10000;padding:10px 15px;background:#2196F3;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.3)';
+    // Changed from translateX(-270px) to translateX(-180px)
         button.onmouseover = function() { this.style.background = '#1976D2'; };
         button.onmouseout = function() { this.style.background = '#2196F3'; };
         button.onclick = () => {
@@ -1462,9 +1540,10 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
         console.log('🎨 Highlight Priority: Purple > Red > Yellow > Blue > Orange');
 
         // Create UI components
-        createButton('⚙️ Highlight Settings', 380, '#4CAF50', '#45a049', showSettingsDialog);
-        createButton('⭐ Download Highlighted', 180, '#9C27B0', '#7B1FA2', () => downloadData(true));
-        createButton('📥 Download All', 10, '#FF9900', '#EC7211', () => downloadData(false));
+        createButton('⚙️ Highlight Settings', '50%', '#4CAF50', '#45a049', showSettingsDialog, 'translateX(-90px)');
+        createButton('⬇️ Download Highlighted', '50%', '#9C27B0', '#7B1FA2', () => downloadData(true), 'translateX(90px)');
+        createButton('📥 Download All', '50%', '#FF9900', '#EC7211', () => downloadData(false), 'translateX(290px)');
+// Changed from translateX(270px) to translateX(290px)
         createToggleActivityButton();
         createActivitySummaryBox();
         createOutOfSlotBox();
