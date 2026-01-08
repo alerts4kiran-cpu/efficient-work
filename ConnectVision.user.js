@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ConnectVision - Amazon Connect Ultimate Monitoring Suite
 // @namespace    http://tampermonkey.net/
-// @version      6.0
+// @version      6.1
 // @description  ConnectVision: Ultimate monitoring suite for Amazon Connect with duration-based highlighting, activity tracking, break schedule compliance, resizable panels, and CSV exports
 // @author       alerts4kiran-cpu
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
@@ -685,7 +685,7 @@ if (activity && containsLetters(activity)) {
         state.summaryBox = document.createElement('div');
         state.summaryBox.id = 'activity-summary-box';
         state.summaryBox.style.cssText = 'position:fixed;top:10px;left:10px;z-index:9999;background:#fff;padding:15px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);width:300px;height:250px;cursor:move;font-family:Arial,sans-serif;overflow:hidden';
-        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3></div><div style="font-size:11px;color:#666;margin-bottom:8px;font-style:italic">Single click on Login/Agent to copy to clipboard</div><div style="display:flex;justify-content:flex-end;align-items:center"><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:calc(100% - 100px);overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#666;text-align:center">Updates every 5 seconds • Drag to move</div>';
+        state.summaryBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:2px solid #FF9900;padding-bottom:8px"><h3 style="margin:0;color:#232F3E;font-size:16px">📊 Activity Summary</h3></div><div style="font-size:14px;color:#666;margin-bottom:8px;font-style:italic">Single click on Login/Agent to copy to clipboard</div><div style="display:flex;justify-content:flex-end;align-items:center"><div><button id="download-summary-btn" style="background:#FF9900;border:none;font-size:14px;cursor:pointer;color:#fff;padding:4px 8px;border-radius:4px;margin-right:8px;font-weight:bold" title="Download CSV">⬇</button><button id="close-summary-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:0;width:24px;height:24px">×</button></div></div><div style="max-height:calc(100% - 100px);overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:16px"><thead><tr style="background:#f8f8f8"><th style="padding:8px;border-bottom:2px solid #ddd;text-align:left;font-weight:bold">Activity</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">HC</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Highest Duration</th><th style="padding:8px;border-bottom:2px solid #ddd;text-align:center;font-weight:bold">Agent</th></tr></thead><tbody id="activity-summary-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#999">Loading...</td></tr></tbody></table></div><div style="margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:14px;color:#666;text-align:center">Updates every 5 seconds • Drag to move</div>';
         document.body.appendChild(state.summaryBox);
 
         makeDraggable(state.summaryBox);
@@ -988,7 +988,7 @@ if (channels && channels !== 'Voice') continue;
         }
 
         let html = `
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px; user-select: text;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; user-select: text;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #d13212;">
                         <th style="padding: 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">Login</th>
@@ -1067,13 +1067,13 @@ if (channels && channels !== 'Voice') continue;
     </div>
     <button id="downloadCSVBtn" style="padding: 5px 10px; background: #232f3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">📥 Download CSV</button>
 </div>
-<div style="margin-top: 5px; font-style: italic; color: #666; font-size: 11px; padding: 0 8px;">Single click on Login/Agent to copy to clipboard</div>
-                <div id="outOfSlotList" style="font-size: 12px; overflow-x: auto; user-select: text;">
+<div style="margin-top: 5px; font-style: italic; color: #666; font-size: 16px; padding: 0 8px;">Single click on Login/Agent to copy to clipboard</div>
+                <div id="outOfSlotList" style="font-size: 12px; overflow-x: auto; overflow-y: auto; max-height: 400px; user-select: text;">
                     <div style="text-align: center; color: #666; padding: 20px;">
                         No out-of-slot breaks detected
                     </div>
                 </div>
-                <div id="outOfSlotSummary" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-top: 2px solid #d13212; font-weight: bold; font-size: 13px; text-align: center;">
+                <div id="outOfSlotSummary" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-top: 2px solid #d13212; font-weight: bold; font-size: 14px; text-align: center;">
                     Total: <span id="outOfSlotCount">0</span> agents
                 </div>
             </div>
@@ -1189,7 +1189,7 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
             </div>
             <div id="panelContent" style="padding: 15px;">
                 <div style="margin-bottom: 15px;">
-                    <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                     <div style="font-size: 14px; color: #666; margin-bottom: 10px;">
                         <div id="scheduleStatus">No schedule loaded</div>
                     </div>
                 </div>
@@ -1204,13 +1204,13 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">Buffer Time (MM:SS):</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input type="number" id="bufferMinutes" min="0" value="0"
-                               style="width: 60px; padding: 5px; font-size: 12px; cursor: text;" placeholder="MM">
+                               style="width: 60px; padding: 5px; font-size: 14px; cursor: text;" placeholder="MM">
                         <span style="font-weight: bold;">:</span>
                         <input type="number" id="bufferSeconds" min="0" max="59" value="0"
-                               style="width: 60px; padding: 5px; font-size: 12px; cursor: text;" placeholder="SS">
-                        <button id="applyBuffer" style="padding: 5px 10px; background: #ff9900; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Apply</button>
+                               style="width: 60px; padding: 5px; font-size: 14px; cursor: text;" placeholder="SS">
+                        <button id="applyBuffer" style="padding: 5px 10px; background: #ff9900; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Apply</button>
                     </div>
-                    <div style="margin-top: 5px; font-size: 11px; color: #666;">Current: <span id="currentBuffer">00:00</span></div>
+                    <div style="margin-top: 5px; font-size: 13px; color: #666;">Current: <span id="currentBuffer">00:00</span></div>
                 </div>
 
                 <div style="margin-bottom: 10px;">
@@ -1219,10 +1219,10 @@ document.getElementById('outOfSlotList').addEventListener('click', (e) => {
                     </button>
                 </div>
 
-                <div style="font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
+                <div style="font-size: 13px; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
                     <div style="margin-bottom: 3px;">🟣 Purple = Out of schedule break (Highest Priority)</div>
                     <div>Updates every 5 seconds</div>
-                    <div id="debugInfo" style="margin-top: 5px; color: #999; font-size: 10px;"></div>
+                    <div id="debugInfo" style="margin-top: 5px; color: #999; font-size: 12px;"></div>
                 </div>
             </div>
         `;
