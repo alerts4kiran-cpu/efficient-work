@@ -58,6 +58,7 @@
         bufferSeconds: 0,
         isScheduleMonitoring: false,
         outOfSlotAgents: [],
+    hiddenOutOfSlotAgents: new Set(),
         // UI state
         isPanelMinimized: false,
         isOutOfSlotBoxMinimized: false,
@@ -431,7 +432,7 @@
 
                 // Only add if this looks like a real agent row
                 if (agentCell && hasChannelInfo && hasDuration) {
-                    const loginMatch = agentCell.match(/[a-z]{6,8}/i);
+                    const loginMatch = agentCell.match(/[a-z]{3,10}/i);
                     if (loginMatch) {
                         activeAgents.add(loginMatch[0].toLowerCase());
                     }
@@ -488,8 +489,8 @@
                 const agentLoginLower = agentLogin?.toLowerCase();
                 // Skip if already processed this agent
                 const normalizedLogin = agentLogin?.toLowerCase();
-               if (processedAgents.has(normalizedLogin)) continue;
-                   processedAgents.add(normalizedLogin);
+                if (processedAgents.has(normalizedLogin)) continue;
+                processedAgents.add(normalizedLogin);
                 const activity = cells[2]?.textContent?.trim();
                 const activityLower = activity?.toLowerCase();
                 const durationText = cells[4]?.textContent?.trim();
@@ -500,6 +501,7 @@
 
                 // ✅ NEW VALIDATION CHECK #1: Skip if agent is not in active agents set
                 if (!activeAgentsSet.has(agentLoginLower)) {
+                    console.log(`[DEBUG] Filtered out (not in active set): ${agentLogin}`);
                     continue;
                 }
 
@@ -977,10 +979,26 @@ if (channels && channels !== 'Voice') continue;
         }
     }
 
-    if (state.outOfSlotAgents.length === 0) {
+    // Filter out hidden agents
+    const visibleAgents = state.outOfSlotAgents.filter(agent =>
+        !state.hiddenOutOfSlotAgents.has(agent.login.toLowerCase())
+    );
+
+    // Update Unhide All button visibility and text
+    const unhideBtn = document.getElementById('unhideAllBtn');
+    if (unhideBtn) {
+        if (state.hiddenOutOfSlotAgents.size > 0) {
+            unhideBtn.style.display = 'inline-block';
+            unhideBtn.textContent = `👁️ Unhide All (${state.hiddenOutOfSlotAgents.size})`;
+        } else {
+            unhideBtn.style.display = 'none';
+        }
+    }
+
+    if (visibleAgents.length === 0) {
             listDiv.innerHTML = `
                 <div style="text-align: center; color: #666; padding: 20px;">
-                    No out-of-slot breaks detected
+                    ${state.outOfSlotAgents.length > 0 ? 'All agents hidden' : 'No out-of-slot breaks detected'}
                 </div>
             `;
             countSpan.textContent = '0';
@@ -991,6 +1009,7 @@ if (channels && channels !== 'Voice') continue;
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; user-select: text;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #d13212;">
+                        <th style="padding: 8px; text-align: center; font-weight: bold; border: 1px solid #ddd; width: 40px;">Hide</th>
                         <th style="padding: 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">Login</th>
                         <th style="padding: 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">Manager</th>
                         <th style="padding: 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">Activity</th>
@@ -1003,10 +1022,16 @@ if (channels && channels !== 'Voice') continue;
                 <tbody>
         `;
 
-        state.outOfSlotAgents.forEach((agent, index) => {
+        visibleAgents.forEach((agent, index) => {
             const rowBg = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
             html += `
                 <tr style="background: ${rowBg};">
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                        <button class="hide-agent-btn" data-login="${agent.login.toLowerCase()}"
+                                style="background: #ff9900; color: white; border: none; border-radius: 3px;
+                                       padding: 2px 6px; cursor: pointer; font-size: 12px;"
+                                title="Hide this agent">👁️</button>
+                    </td>
                     <td class="copy-login" data-login="${agent.login.toUpperCase()}" style="padding: 6px; border: 1px solid #ddd; font-weight: bold; color: #d13212; cursor: pointer;" title="Click to copy">${agent.login.toUpperCase()}</td>
                     <td style="padding: 6px; border: 1px solid #ddd;">${agent.manager}</td>
                     <td style="padding: 6px; border: 1px solid #ddd;">${agent.activity.charAt(0).toUpperCase() + agent.activity.slice(1)}</td>
@@ -1025,6 +1050,17 @@ if (channels && channels !== 'Voice') continue;
 
         listDiv.innerHTML = html;
         countSpan.textContent = state.outOfSlotAgents.length;
+
+        // Add click handlers for hide buttons
+        document.querySelectorAll('.hide-agent-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const login = btn.getAttribute('data-login');
+                state.hiddenOutOfSlotAgents.add(login);
+                updateOutOfSlotBox();
+                alert(`✅ Hidden: ${login.toUpperCase()}`);
+            });
+        });
     };
 
     const createOutOfSlotBox = () => {
@@ -1065,6 +1101,7 @@ if (channels && channels !== 'Voice') continue;
         <div style="font-weight: bold;">Current Slot:</div>
         <div id="displayCurrentSlot" style="margin-top: 5px; font-size: 14px; color: #067d62;">--</div>
     </div>
+    <button id="unhideAllBtn" style="padding: 5px 10px; background: #067d62; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; margin-right: 5px; display: none;">👁️ Unhide All</button>
     <button id="downloadCSVBtn" style="padding: 5px 10px; background: #232f3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">📥 Download CSV</button>
 </div>
 <div style="margin-top: 5px; font-style: italic; color: #666; font-size: 16px; padding: 0 8px;">Single click on Login/Agent to copy to clipboard</div>
@@ -1084,6 +1121,11 @@ if (channels && channels !== 'Voice') continue;
         makeResizable(state.outOfSlotBox);
         document.getElementById('minimizeOutOfSlotBtn').addEventListener('click', toggleOutOfSlotBox);
         document.getElementById('downloadCSVBtn').addEventListener('click', downloadOutOfSlotCSV);
+        document.getElementById('unhideAllBtn').addEventListener('click', () => {
+            state.hiddenOutOfSlotAgents.clear();
+            updateOutOfSlotBox();
+            alert('✅ All agents unhidden');
+        });
         // ✅ NEW: Add click-to-copy functionality for agent logins
 document.getElementById('outOfSlotList').addEventListener('click', (e) => {
     const cell = e.target.closest('.copy-login');
