@@ -432,7 +432,7 @@
 
                 // Only add if this looks like a real agent row
                 if (agentCell && hasChannelInfo && hasDuration) {
-                    const loginMatch = agentCell.match(/[a-z]{3,10}/i);
+                    const loginMatch = agentCell.match(/[a-z]{3,15}/i);
                     if (loginMatch) {
                         activeAgents.add(loginMatch[0].toLowerCase());
                     }
