@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ConnectVision - Amazon Connect Ultimate Monitoring Suite
 // @namespace    http://tampermonkey.net/
-// @version      8.0
+// @version      8.1
 // @description  ConnectVision: Unified dashboard for Amazon Connect with duration-based highlighting, activity tracking, break schedule compliance, single-tab enforcement, and pause detection
 // @author       alerts4kiran-cpu
 // @match        https://c2-na-prod.my.connect.aws/real-time-metrics*
@@ -401,7 +401,7 @@
             }
         }
 
-        // Pass 3: find by today's weekday only (if no date in headers)
+        // Pass 3: find by today's weekday only (schedules repeat weekly)
         if (targetCol === -1) {
             for (let r = 0; r < Math.min(4, data.length); r++) {
                 const row = data[r] || [];
@@ -418,8 +418,9 @@
         }
 
         if (targetCol === -1) {
-            console.log('[ConnectVision] Could not find today\'s section in header rows — falling back to simple parser');
-            return parseScheduleSimple(data);
+            console.log("[ConnectVision] Could not find today's section in header rows");
+            showScheduleMessage('❌ Could not find ' + todayWeekday + ' in schedule headers', 'error');
+            return;
         }
 
         const cOff = targetCol;
@@ -427,6 +428,22 @@
         console.log('[ConnectVision] Found today at row', headerRowIdx, 'col', cOff, ':', dayLabel);
 
         // Data starts after header row + sub-header row (login/manager/break labels)
+
+        // Detect column layout from sub-header row (row after weekday header)
+        // Layout A: Login, Manager, AA/FTE, Break1, Break2, Break3 (breaks at +3,+4,+5)
+        // Layout B: Login, Manager, Break1, Break2, Break3 (breaks at +2,+3,+4)
+        const subHeaderRow = data[headerRowIdx + 1] || [];
+        let breakOffset = 3; // default: assume AA/FTE column exists
+        for (let c = cOff + 2; c < Math.min(cOff + 5, subHeaderRow.length); c++) {
+            const cell = String(subHeaderRow[c] || '').toLowerCase();
+            if (cell.includes('break')) {
+                breakOffset = c - cOff;
+                break;
+            }
+        }
+        console.log('[ConnectVision] Sub-headers:', JSON.stringify((subHeaderRow || []).slice(cOff, cOff + 7)));
+        console.log('[ConnectVision] Break columns start at offset +' + breakOffset + ' from col', cOff);
+
         let dataStart = -1;
         for (let r = headerRowIdx + 2; r < Math.min(headerRowIdx + 8, data.length); r++) {
             if (isScheduleSkipRow(data[r], cOff)) continue;
@@ -448,9 +465,9 @@
             if (!login || !/^[a-z]{3,20}$/.test(login)) continue;
             try {
                 const manager  = extractManagerAlias(cleanText(row[cOff + 1]));
-                const b1       = cleanText(row[cOff + 3]);
-                const b2       = cleanText(row[cOff + 4]);
-                const b3       = cleanText(row[cOff + 5]);
+                const b1       = cleanText(row[cOff + breakOffset]);
+                const b2       = cleanText(row[cOff + breakOffset + 1]);
+                const b3       = cleanText(row[cOff + breakOffset + 2]);
                 const allSlots = [
                     ...(b1 ? parseTimeSlot(b1) : []),
                     ...(b2 ? parseTimeSlot(b2) : []),
@@ -1263,7 +1280,7 @@
         `;
         el.innerHTML = `
             <div id="cv-titlebar" style="background:#232f3e;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;cursor:move;flex-shrink:0;border-radius:8px 8px 0 0;user-select:none">
-                <span style="font-weight:bold;font-size:15px">🖥️ ConnectVision <span style="font-size:11px;opacity:.6;margin-left:6px">v8.0</span></span>
+                <span style="font-weight:bold;font-size:15px">🖥️ ConnectVision <span style="font-size:11px;opacity:.6;margin-left:6px">v8.1</span></span>
                 <div style="display:flex;gap:8px;align-items:center">
                     <span id="cv-pauseIndicator" style="display:none;background:#d13212;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:bold">⏸ PAUSED</span>
                     <span id="cv-tabOwner"        style="background:#067d62;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px">● Active</span>
@@ -1970,61 +1987,130 @@
 
             console.log('[ConnectVision] Looking for today:', todayWeekday, todayDate);
 
-            // Target the FIRST visible table — this is the active/current schedule sheet
-            // Then apply date/weekday matching within it to find today's section
-            let scheduleTable = tables.length > 0 ? tables[0] : null;
+            // Table selection: find the table with proper weekday(date) headers
+            // The real schedule table has headers like "Sunday(14th June)" — not bare "Monday"
+            const weekdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+            let scheduleTable = null;
+            let selectedIdx = -1;
 
-            // If first visible table doesn't have today's date, check other visible tables
-            if (scheduleTable && tables.length > 1) {
-                const firstRows = scheduleTable.querySelectorAll('tr');
-                let firstHasToday = false;
-                for (let r = 0; r < Math.min(3, firstRows.length); r++) {
-                    const cells = firstRows[r].querySelectorAll('td, th');
+            // Log all visible tables
+            console.log('[ConnectVision] Visible tables:',
+                tables.map((tbl, idx) => {
+                    const r = tbl.querySelectorAll('tr').length;
+                    const c = tbl.rows[0] ? tbl.rows[0].cells.length : 0;
+                    return `#${idx}(${r}r x ${c}c)`;
+                }).join(', ')
+            );
+
+            // Score each table: look for weekday(date) pattern in first 3 rows
+            for (let idx = 0; idx < tables.length; idx++) {
+                const tbl = tables[idx];
+                const tblRows = tbl.querySelectorAll('tr');
+                let hasWeekdayWithDate = false;
+                let hasTodayWeekday = false;
+                let hasExactMatch = false;
+
+                for (let r = 0; r < Math.min(3, tblRows.length); r++) {
+                    const cells = tblRows[r].querySelectorAll('td, th');
                     for (const cell of cells) {
                         const text = (cell.textContent || '').trim().toLowerCase();
-                        if ((text.startsWith(todayWeekday) && text.includes(todayDate)) || text.includes(todayDate)) {
-                            firstHasToday = true;
-                            break;
+                        // Match "weekday(date)" pattern — the real schedule format
+                        for (const wd of weekdays) {
+                            if (text.startsWith(wd + '(')) {
+                                hasWeekdayWithDate = true;
+                                if (wd === todayWeekday) hasTodayWeekday = true;
+                                if (text.includes(todayDate)) hasExactMatch = true;
+                            }
                         }
                     }
-                    if (firstHasToday) break;
                 }
 
-                // If first visible table doesn't have today's data, scan others as safety fallback
-                if (!firstHasToday) {
-                    console.log('[ConnectVision] First visible table does not have today\'s date, checking others...');
-                    for (const tbl of tables.slice(1)) {
-                        const rows = tbl.querySelectorAll('tr');
-                        for (let r = 0; r < Math.min(3, rows.length); r++) {
-                            const cells = rows[r].querySelectorAll('td, th');
-                            for (const cell of cells) {
-                                const text = (cell.textContent || '').trim().toLowerCase();
-                                if (text.startsWith(todayWeekday) && text.includes(todayDate)) {
-                                    scheduleTable = tbl;
-                                    break;
-                                }
-                            }
-                            if (scheduleTable !== tables[0]) break;
-                        }
-                        if (scheduleTable !== tables[0]) break;
-                    }
+                // Pass 1: exact match (today's weekday + today's date)
+                if (hasExactMatch && !scheduleTable) {
+                    scheduleTable = tbl;
+                    selectedIdx = idx;
+                    console.log('[ConnectVision] Selected table #' + idx + ' (exact date match, ' + tblRows.length + ' rows)');
+                    break;
+                }
+
+                // Pass 2: has today's weekday in weekday(date) format
+                if (hasTodayWeekday && !scheduleTable) {
+                    scheduleTable = tbl;
+                    selectedIdx = idx;
                 }
             }
 
+            if (scheduleTable && selectedIdx >= 0) {
+                if (selectedIdx >= 0) console.log('[ConnectVision] Selected table #' + selectedIdx + ' (weekday+date format, ' + scheduleTable.querySelectorAll('tr').length + ' rows)');
+            }
+
+            // Pass 3: fallback to first table with any weekday name
             if (!scheduleTable) {
-                showScheduleMessage('\u274c No visible schedule table found in Quip', 'error');
+                for (let idx = 0; idx < tables.length; idx++) {
+                    const tbl = tables[idx];
+                    const tblRows = tbl.querySelectorAll('tr');
+                    for (let r = 0; r < Math.min(3, tblRows.length); r++) {
+                        const cells = tblRows[r].querySelectorAll('td, th');
+                        for (const cell of cells) {
+                            const text = (cell.textContent || '').trim().toLowerCase();
+                            if (weekdays.includes(text)) {
+                                scheduleTable = tbl;
+                                selectedIdx = idx;
+                                console.log('[ConnectVision] Selected table #' + idx + ' (bare weekday fallback, ' + tblRows.length + ' rows)');
+                                break;
+                            }
+                        }
+                        if (scheduleTable) break;
+                    }
+                    if (scheduleTable) break;
+                }
+            }
+
+            // Pass 4: fallback to first visible table
+            if (!scheduleTable) {
+                scheduleTable = tables[0];
+                selectedIdx = 0;
+                console.log('[ConnectVision] Selected table #0 (first visible fallback)');
+            }
+
+            if (!scheduleTable) {
+                showScheduleMessage('❌ No visible schedule table found in Quip', 'error');
                 return;
             }
 
             const rows = scheduleTable.querySelectorAll('tr');
             const grid = Array.from(rows).map(row =>
-                Array.from(row.querySelectorAll('td, th')).map(c => { const t = (c.textContent || '').replace(/[\u200b\u200c\u200d\ufeff\u00ad]/g, '').trim(); return t || null; })
+                Array.from(row.querySelectorAll('td, th')).map(c => { const t = (c.textContent || '').replace(/[​‌‍﻿­]/g, '').trim(); return t || null; })
             );
-            console.log('[ConnectVision] Quip schedule table:', grid.length, 'rows,', (grid[0]||[]).length, 'cols');
+            console.log('[ConnectVision] Table grid:', grid.length, 'rows,', (grid[0]||[]).length, 'cols');
             if (grid[0]) console.log('[ConnectVision] Grid Row 0:', JSON.stringify(grid[0].slice(0, 14)));
             if (grid[1]) console.log('[ConnectVision] Grid Row 1:', JSON.stringify(grid[1].slice(0, 14)));
-            if (grid.length === 0) { showScheduleMessage('\u274c No rows in schedule table', 'error'); return; }
-            parseScheduleFromGrid(grid);
+            if (grid.length === 0) { showScheduleMessage('❌ No rows in schedule table', 'error'); return; }
+
+            // Detect format: multi-day (weekday headers with dates) vs flat (Login/Break columns)
+            const isMultiDay = grid.slice(0, 4).some(row =>
+                (row || []).some(cell => {
+                    const t = String(cell || '').trim().toLowerCase();
+                    return weekdays.some(wd => t.startsWith(wd + '('));
+                })
+            );
+
+            if (isMultiDay) {
+                console.log('[ConnectVision] Detected MULTI-DAY table format');
+                parseScheduleFromGrid(grid);
+            } else {
+                // Check if it has bare weekday names (still multi-day but without dates)
+                const hasBareWeekday = grid.slice(0, 4).some(row =>
+                    (row || []).some(cell => weekdays.includes(String(cell || '').trim().toLowerCase()))
+                );
+                if (hasBareWeekday) {
+                    console.log('[ConnectVision] Detected MULTI-DAY table (bare weekdays)');
+                    parseScheduleFromGrid(grid);
+                } else {
+                    console.log('[ConnectVision] Detected FLAT table format');
+                    parseScheduleSimple(grid);
+                }
+            }
         } catch (e) { showScheduleMessage('\u274c Quip HTML parse error: ' + e.message, 'error'); }
     }
 
